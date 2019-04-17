@@ -11,6 +11,9 @@ import {Platform, StyleSheet, Text, View, Alert, PermissionsAndroid } from 'reac
 import MapView, {PROVIDER_GOOGLE} from "react-native-maps";
 import DeviceInfo from "react-native-device-info";
 // import Geolocation from "react-native-geolocation-service";
+import TimerMixin from "react-timer-mixin";
+
+mixins: [TimerMixin];
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
@@ -30,30 +33,112 @@ export default class App extends Component<Props> {
 
   componentDidMount() {
     this.requestLocationPermission();
-    // Geolocation.getCurrentPosition(
-    //   position => {
-    //     const location = JSON.stringify(position);
-    //     console.log(location)
-    //     const latitude = location.coords.latitude;
-    //     const longitude = location.coords.longitude;
-    //     fetch("http://d55a176d.ngrok.io/users/user", {
-    //       method: "POST",
-    //       headers: {
-    //         Accept: "application/json",
-    //         "Content-Type": "application/json"
-    //       },
-    //       body: JSON.stringify({
-    //         id: DeviceInfo.getUniqueID(),
-    //         latitude: latitude,
-    //         longitude: longitude
-    //       })
-    //     });
-    //     this.setState({ location });
-    //   },
-    //   error => Alert.alert(error.message),
-    //   { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-    // );
-    
+    this.interval = setInterval(() => this.update(), 10000); //6 seconds
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.interval);
+  }
+
+  async update() {
+    console.log("hi")
+    this.getMarkers()
+    this.updateLocation()
+  }
+
+  async getMarkers() {
+    fetch(`http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`)
+      .then((response) => {
+        console.log(response)
+        console.log(JSON.stringify(response))
+        return response.json()
+      })
+      .then((responseJson) => {
+        var markers = []
+        console.log(responseJson)
+        for (var i = 0; i < responseJson.locations.length; i++) {
+          const u = {
+            coordinate: {
+              latitude: responseJson.locations[i][0],
+              longitude: responseJson.locations[i][1]
+            }
+          }
+          markers.push(u)
+        }
+        this.setState({
+          users: markers,
+          circleLatitude: responseJson.centroid[0],
+          circleLongitude: responseJson.centroid[1]
+        })
+      })
+  }
+
+  async updateLocation() {
+    // get location, make update request
+    try {
+      const granted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      );
+      if (granted) {
+        console.log("You can use the ACCESS_FINE_LOCATION");
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            fetch(`http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUserId()}`, {
+              method: "PUT",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                id: DeviceInfo.getUniqueID(),
+                latitude: latitude,
+                longitude: longitude
+              })
+            })
+              .then(() => {
+                return fetch(
+                  `http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`
+                );
+              })
+              .then(response => {
+                console.log(response);
+                console.log(JSON.stringify(response));
+                return response.json();
+              })
+              .then(responseJson => {
+                var markers = [];
+                console.log(responseJson);
+                for (var i = 0; i < responseJson.locations.length; i++) {
+                  const u = {
+                    coordinate: {
+                      latitude: responseJson.locations[i][0],
+                      longitude: responseJson.locations[i][1]
+                    }
+                  };
+                  markers.push(u);
+                }
+                this.setState({
+                  users: markers,
+                  circleLatitude: responseJson.centroid[0],
+                  circleLongitude: responseJson.centroid[1]
+                });
+              })
+              .catch(err => {
+                console.log(DeviceInfo.getUniqueID());
+                console.log(err);
+              });
+          },
+          error => Alert.alert(error.message),
+          { enableHighAccuracy: true, timeout: 20000 }
+        );
+      } else {
+        console.log("ACCESS_FINE_LOCATION permission denied");
+      }
+    } catch (err) {
+      console.warn(err);
+    }
   }
 
   async requestLocationPermission() {
@@ -67,7 +152,7 @@ export default class App extends Component<Props> {
         position => {
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
-          fetch("http://d55a176d.ngrok.io/users/user", {
+          fetch("http://9633b07b.ngrok.io/users/user", {
             method: "POST",
             headers: {
               Accept: "application/json",
@@ -79,7 +164,7 @@ export default class App extends Component<Props> {
               longitude: longitude
             })
           }).then(() => {
-            return fetch(`http://d55a176d.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`)
+            return fetch(`http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`)
           })
             .then((response) => {
               console.log(response)
@@ -135,14 +220,27 @@ export default class App extends Component<Props> {
       >
         {this.state.users.map((marker, index) => {
           return (
-            <MapView.Marker key={index} coordinate={marker.coordinate} pinColor='blue'>
-            </MapView.Marker>
+            <MapView.Marker
+              key={index}
+              coordinate={marker.coordinate}
+              pinColor="blue"
+            />
           );
         })}
-        <MapView.Marker coordinate={{
-          latitude: this.state.circleLatitude, longitude: this.state.circleLongitude
-        }}>
-        </MapView.Marker>
+        <MapView.Marker
+          coordinate={{
+            latitude: this.state.circleLatitude,
+            longitude: this.state.circleLongitude
+          }}
+        />
+        <MapView.Circle
+          center={{
+            latitude: this.state.circleLatitude,
+            longitude: this.state.circleLongitude
+          }}
+          radius={150}
+          fillColor={"rgba(68,85,90,0.5)"}
+        />
       </MapView>
     );
   }
