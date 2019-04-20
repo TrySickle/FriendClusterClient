@@ -47,15 +47,15 @@ export default class App extends Component<Props> {
   }
 
   async getMarkers() {
-    fetch(`http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`)
+    fetch(`http://397dc131.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`)
       .then((response) => {
-        console.log(response)
-        console.log(JSON.stringify(response))
+        // console.log(response)
+        // console.log(JSON.stringify(response))
         return response.json()
       })
       .then((responseJson) => {
         var markers = []
-        console.log(responseJson)
+        // console.log(responseJson)
         for (var i = 0; i < responseJson.locations.length; i++) {
           const u = {
             coordinate: {
@@ -85,7 +85,8 @@ export default class App extends Component<Props> {
           position => {
             const latitude = position.coords.latitude;
             const longitude = position.coords.longitude;
-            fetch(`http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUserId()}`, {
+            console.log("PUT: " + latitude + longitude)
+            fetch(`http://397dc131.ngrok.io/users/user/${DeviceInfo.getUniqueID()}`, {
               method: "PUT",
               headers: {
                 Accept: "application/json",
@@ -99,17 +100,17 @@ export default class App extends Component<Props> {
             })
               .then(() => {
                 return fetch(
-                  `http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`
+                  `http://397dc131.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`
                 );
               })
               .then(response => {
-                console.log(response);
-                console.log(JSON.stringify(response));
+                // console.log(response);
+                // console.log(JSON.stringify(response));
                 return response.json();
               })
               .then(responseJson => {
                 var markers = [];
-                console.log(responseJson);
+                // console.log(responseJson);
                 for (var i = 0; i < responseJson.locations.length; i++) {
                   const u = {
                     coordinate: {
@@ -152,7 +153,7 @@ export default class App extends Component<Props> {
         position => {
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
-          fetch("http://9633b07b.ngrok.io/users/user", {
+          fetch("http://397dc131.ngrok.io/users/user", {
             method: "POST",
             headers: {
               Accept: "application/json",
@@ -164,16 +165,16 @@ export default class App extends Component<Props> {
               longitude: longitude
             })
           }).then(() => {
-            return fetch(`http://9633b07b.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`)
+            return fetch(`http://397dc131.ngrok.io/users/user/${DeviceInfo.getUniqueID()}/circle`)
           })
             .then((response) => {
-              console.log(response)
-              console.log(JSON.stringify(response))
+              // console.log(response)
+              // console.log(JSON.stringify(response))
               return response.json()
             })
             .then((responseJson) => {
               var markers = []
-              console.log(responseJson)
+              // console.log(responseJson)
               for (var i = 0; i < responseJson.locations.length; i++) {
                 const u = {
                   coordinate: {
